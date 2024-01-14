@@ -29,7 +29,7 @@ struct Position {
 struct Size {
     int rows = 0;
     int cols = 0;
-
+ 
     bool operator==(Size rhs) const;
 };
 
@@ -41,14 +41,22 @@ public:
         Value,  // ячейка не может быть трактована как число
         Div0,  // в результате вычисления возникло деление на ноль
     };
-
-    FormulaError(Category category);
-
-    Category GetCategory() const;
-
-    bool operator==(FormulaError rhs) const;
-
-    std::string_view ToString() const;
+    
+    FormulaError(Category category) {category_ = category;}
+    Category GetCategory() const {return category_;}
+    bool operator==(FormulaError rhs) const{return category_ == rhs.category_;}
+    
+    std::string_view ToString() const {        
+        switch (category_) {                
+            case Category::Ref:
+                return "#REF!";                
+            case Category::Value:
+                return "#VALUE!";                
+            case Category::Div0:
+                return "#ARITHM!";
+        }
+        return "";
+    }
 
 private:
     Category category_;
@@ -62,8 +70,7 @@ public:
     using std::out_of_range::out_of_range;
 };
 
-// Исключение, выбрасываемое при попытке задать синтаксически некорректную
-// формулу
+// Исключение, выбрасываемое при попытке задать синтаксически некорректную формулу
 class FormulaException : public std::runtime_error {
 public:
     using std::runtime_error::runtime_error;
@@ -78,12 +85,11 @@ public:
 
 class CellInterface {
 public:
-    // Либо текст ячейки, либо значение формулы, либо сообщение об ошибке из
-    // формулы
+    // Либо текст ячейки, либо значение формулы, либо сообщение об ошибке из формулы 
     using Value = std::variant<std::string, double, FormulaError>;
-
+ 
     virtual ~CellInterface() = default;
-
+    
     // Возвращает видимое значение ячейки.
     // В случае текстовой ячейки это её текст (без экранирующих символов). В
     // случае формулы - числовое значение формулы или сообщение об ошибке.
@@ -98,11 +104,10 @@ public:
     // ячеек. В случае текстовой ячейки список пуст.
     virtual std::vector<Position> GetReferencedCells() const = 0;
 };
-
+ 
 inline constexpr char FORMULA_SIGN = '=';
 inline constexpr char ESCAPE_SIGN = '\'';
-
-// Интерфейс таблицы
+ 
 class SheetInterface {
 public:
     virtual ~SheetInterface() = default;
@@ -145,5 +150,5 @@ public:
     virtual void PrintTexts(std::ostream& output) const = 0;
 };
 
-// Создаёт готовую к работе пустую таблицу.
+// Создаёт готовую к работе пустую таблицу
 std::unique_ptr<SheetInterface> CreateSheet();
