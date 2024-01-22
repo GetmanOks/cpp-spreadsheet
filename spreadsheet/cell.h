@@ -25,6 +25,9 @@ public:
     bool IsReferenced() const;
     void InvalidateAllCache(bool flag);
     
+    void FindCyclicDependency(std::string text);
+    void UpdateDependencies();
+    
 private:    
     class Impl {
     public:

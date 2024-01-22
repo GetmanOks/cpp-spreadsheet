@@ -14,74 +14,14 @@ Cell::Cell(Sheet& sheet)
 Cell::~Cell() = default;
 
 void Cell::Set(std::string text) {
-    std::unique_ptr<Impl> temp_impl;
+    FindCyclicDependency(text);
+    UpdateDependencies();
     
-    if (text.empty()) {
-        temp_impl = std::make_unique<EmptyImpl>();        
-    }
-    else if (text.size() >= 2 && text.at(0) == FORMULA_SIGN) {
-        temp_impl = std::make_unique<FormulaImpl>(std::move(text), sheet_);        
-    }
-    else {
-        temp_impl = std::make_unique<TextImpl>(std::move(text));
-    }
-    
-    //Поиск циклических зависимостей
-    const Impl& temp_impl_ = *temp_impl;
-    const auto temp_ref_cells = temp_impl_.GetReferencedCells();
-    
-    if (!temp_ref_cells.empty()) {        
-        std::set<const Cell*> ref_collection;
-        std::set<const Cell*> enter_collection;
-        std::vector<const Cell*> to_enter_collection;        
-        for (auto position : temp_ref_cells) {
-            ref_collection.insert(sheet_.Get_Cell(position));
-        } 
-        to_enter_collection.push_back(this);
-        
-        while (!to_enter_collection.empty()) {            
-            const Cell* ongoing = to_enter_collection.back();            
-            to_enter_collection.pop_back();
-            enter_collection.insert(ongoing);            
-            if (ref_collection.find(ongoing) == ref_collection.end()) {                
-                for (const Cell* dependent : ongoing->dependent_cells_) { 
-                    if (enter_collection.find(dependent) == enter_collection.end()) {
-                        to_enter_collection.push_back(dependent);
-                    }
-                }                
-            }
-            else {
-                throw CircularDependencyException("circular dependency detected");
-            }
-        }        
-        impl_ = std::move(temp_impl);        
-    }
-    else {
-        impl_ = std::move(temp_impl);
-    }
-        
-    //Обновление зависимостей
-    for (Cell* refrenced : referenced_cells_) {
-        refrenced->dependent_cells_.erase(this);
-    }
-    referenced_cells_.clear();
-    
-    for (const auto& position : impl_->GetReferencedCells()) {
-        Cell* refrenced = sheet_.Get_Cell(position);        
-        if (!refrenced) {
-            sheet_.SetCell(position, "");
-            refrenced = sheet_.Get_Cell(position);
-        }        
-        referenced_cells_.insert(refrenced);
-        refrenced->dependent_cells_.insert(this);
-    }
-    
-    //Инвалидация кеша
     InvalidateAllCache(true);
 }
 
 void Cell::Clear() {
-    impl_ = std::make_unique<EmptyImpl>();
+    Set("");
 }
 
 Cell::Value Cell::GetValue() const {
@@ -107,6 +47,73 @@ void Cell::InvalidateAllCache(bool flag = false) {
             dependent->InvalidateAllCache();
         }
     }
+    return;
+}
+
+void Cell::FindCyclicDependency(std::string text) {
+    std::unique_ptr<Impl> temp_impl;
+    
+    if (text.empty()) {
+        temp_impl = std::make_unique<EmptyImpl>();        
+    }
+    else if (text.size() >= 2 && text.at(0) == FORMULA_SIGN) {
+        temp_impl = std::make_unique<FormulaImpl>(std::move(text), sheet_);        
+    }
+    else {
+        temp_impl = std::make_unique<TextImpl>(std::move(text));
+    }
+    
+    const Impl& temp_impl_ = *temp_impl;
+    const auto temp_ref_cells = temp_impl_.GetReferencedCells();
+    
+    if (!temp_ref_cells.empty()) {        
+        std::set<const Cell*> ref_collection;
+        std::set<const Cell*> enter_collection;
+        std::vector<const Cell*> to_enter_collection;        
+        for (auto position : temp_ref_cells) {
+            ref_collection.insert(sheet_.GetCellPtr(position));
+        } 
+        to_enter_collection.push_back(this);
+        
+        while (!to_enter_collection.empty()) {            
+            const Cell* ongoing = to_enter_collection.back();            
+            to_enter_collection.pop_back();
+            enter_collection.insert(ongoing);            
+            if (ref_collection.find(ongoing) == ref_collection.end()) {                
+                for (const Cell* dependent : ongoing->dependent_cells_) { 
+                    if (enter_collection.find(dependent) == enter_collection.end()) {
+                        to_enter_collection.push_back(dependent);
+                    }
+                }                
+            }
+            else {
+                throw CircularDependencyException("circular dependency detected");
+            }
+        }        
+        impl_ = std::move(temp_impl);        
+    }
+    else {
+        impl_ = std::move(temp_impl);
+    }
+    return;
+}
+
+void Cell::UpdateDependencies() {
+    for (Cell* refrenced : referenced_cells_) {
+        refrenced->dependent_cells_.erase(this);
+    }
+    referenced_cells_.clear();
+    
+    for (const auto& position : impl_->GetReferencedCells()) {
+        Cell* refrenced = sheet_.GetCellPtr(position);        
+        if (!refrenced) {
+            sheet_.SetCell(position, "");
+            refrenced = sheet_.GetCellPtr(position);
+        }        
+        referenced_cells_.insert(refrenced);
+        refrenced->dependent_cells_.insert(this);
+    }
+    return;
 }
 
 
