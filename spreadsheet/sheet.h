@@ -16,8 +16,8 @@ public:
     
     CellInterface* GetCell(Position pos) override;
     const CellInterface* GetCell(Position pos) const override;
-    Cell* Get_Cell(Position pos);
-    const Cell* Get_Cell(Position pos) const;
+    Cell* GetCellPtr(Position pos);
+    const Cell* GetCellPtr(Position pos) const;
     
     void ClearCell(Position pos) override;
     
@@ -25,6 +25,8 @@ public:
     
     void PrintValues(std::ostream& output) const override;
     void PrintTexts(std::ostream& output) const override;
+    
+    void IsPositionValid(Position pos) const;
     
 private:
     Table cells_;
