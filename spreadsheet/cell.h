@@ -3,10 +3,11 @@
 #include "common.h"
 #include "formula.h"
 
-#include <functional>
-#include <unordered_set>
-#include <stack>
+#include <memory>
+#include <optional>
 #include <set>
+#include <string>
+#include <vector>
 
 class Sheet;
 
@@ -23,7 +24,7 @@ public:
     std::vector<Position> GetReferencedCells() const override;
     
     bool IsReferenced() const;
-    void InvalidateAllCache(bool flag);
+    void InvalidateAllCache(bool force = false);
     
     void FindCyclicDependency(std::string text);
     void UpdateDependencies();
@@ -35,7 +36,7 @@ private:
         virtual std::string GetText() const = 0;
         virtual std::vector<Position> GetReferencedCells() const;
         
-        virtual bool HasCache();
+        virtual bool HasCache() const;
         virtual void InvalidateCache();
         
         virtual ~Impl() = default;
@@ -65,7 +66,7 @@ private:
         std::string GetText() const override;
         std::vector<Position> GetReferencedCells() const override;
         
-        bool HasCache() override;
+        bool HasCache() const override;
         void InvalidateCache() override;
         
     private:

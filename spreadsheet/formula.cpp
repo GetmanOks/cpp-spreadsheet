@@ -5,12 +5,13 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <cmath>
 #include <sstream>
 
 using namespace std::literals;
 
 std::ostream& operator<<(std::ostream& output, FormulaError fe) {
-    return output << "#ARITHM!";
+    return output << fe.ToString();
 }
 
 namespace {
@@ -37,13 +38,15 @@ public:
                             if (str_value != "") {
                                 std::istringstream input(str_value);
                                 double num = 0.0;
-                                
-                                if (input.eof() && input >> num) {
-                                    return num;
-                                } else {
-                                    throw FormulaError(FormulaError::Category::Value);
+
+                                if (input >> num) {
+                                    input >> std::ws;
+                                    if (input.eof()) {
+                                        return num;
+                                    }
                                 }
-                                
+
+                                throw FormulaError(FormulaError::Category::Value);
                             } else {
                                 return 0.0;
                             }
@@ -61,7 +64,11 @@ public:
                 }
             };
             
-            return ast_.Execute(args);
+            const double result = ast_.Execute(args);
+            if (!std::isfinite(result)) {
+                throw FormulaError(FormulaError::Category::Div0);
+            }
+            return result;
             
         } catch (const FormulaError& evaluate_error) {
             return evaluate_error;
@@ -84,6 +91,9 @@ public:
                 continue;
             }
         }
+
+        std::sort(cells.begin(), cells.end());
+        cells.erase(std::unique(cells.begin(), cells.end()), cells.end());
         return cells;
     }
 

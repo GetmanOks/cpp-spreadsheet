@@ -124,6 +124,9 @@ void TestClearCell() {
     auto sheet = CreateSheet();
 
     sheet->SetCell("C2"_pos, "Me gusta");
+    ASSERT(sheet->GetCell("A2"_pos) == nullptr);
+    ASSERT(sheet->GetCell("B2"_pos) == nullptr);
+
     sheet->ClearCell("C2"_pos);
     ASSERT(sheet->GetCell("C2"_pos) == nullptr);
 
@@ -162,6 +165,22 @@ void TestFormulaReferences() {
     ASSERT_EQUAL(evaluate("A1+B3"), 1);  // Ячейка с пустым текстом
     ASSERT_EQUAL(evaluate("A1+B1"), 1);  // Пустая ячейка
     ASSERT_EQUAL(evaluate("A1+E4"), 1);  // Ячейка за пределами таблицы
+}
+
+void TestNumericTextInFormula() {
+    auto sheet = CreateSheet();
+
+    sheet->SetCell("A1"_pos, "  12.5  ");
+    sheet->SetCell("B1"_pos, "=A1*2");
+    ASSERT_EQUAL(sheet->GetCell("B1"_pos)->GetValue(), CellInterface::Value(25.0));
+
+    sheet->SetCell("A1"_pos, "12.5kg");
+    ASSERT_EQUAL(sheet->GetCell("B1"_pos)->GetValue(),
+                 CellInterface::Value(FormulaError::Category::Value));
+
+    sheet->SetCell("A1"_pos, "   ");
+    ASSERT_EQUAL(sheet->GetCell("B1"_pos)->GetValue(),
+                 CellInterface::Value(FormulaError::Category::Value));
 }
 
 void TestFormulaExpressionFormatting() {
@@ -358,6 +377,7 @@ int main() {
     RUN_TEST(tr, TestClearCell);
     RUN_TEST(tr, TestFormulaArithmetic);
     RUN_TEST(tr, TestFormulaReferences);
+    RUN_TEST(tr, TestNumericTextInFormula);
     RUN_TEST(tr, TestFormulaExpressionFormatting);
     RUN_TEST(tr, TestFormulaReferencedCells);
     RUN_TEST(tr, TestErrorValue);

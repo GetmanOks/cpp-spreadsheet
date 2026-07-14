@@ -6,11 +6,8 @@
 #include <algorithm>
 #include <functional>
 #include <iostream>
-#include <optional>
 
 using namespace std::literals;
-
-Sheet::~Sheet() {}
 
 void Sheet::SetCell(Position pos, std::string text) {
     IsPositionValid(pos);
@@ -26,28 +23,12 @@ void Sheet::SetCell(Position pos, std::string text) {
 
 CellInterface* Sheet::GetCell(Position pos) {
     IsPositionValid(pos);
-    
-    if (pos.row < int(std::size(cells_)) && pos.col < int(std::size(cells_[pos.row]))) {            
-        if (cells_[pos.row][pos.col].get()->GetText() == "") {
-            return nullptr;
-        } else {
-            return cells_[pos.row][pos.col].get();
-        }
-    }
-    return nullptr;
+    return GetCellPtr(pos);
 }
 
 const CellInterface* Sheet::GetCell(Position pos) const {
     IsPositionValid(pos);
-    
-    if (pos.row < int(std::size(cells_)) && pos.col < int(std::size(cells_[pos.row]))) {            
-        if (cells_[pos.row][pos.col].get()->GetText() == "") {
-            return nullptr;                
-        } else {
-            return cells_[pos.row][pos.col].get();
-        }
-    }
-    return nullptr;
+    return GetCellPtr(pos);
 }
 
 Cell* Sheet::GetCellPtr(Position pos) {
@@ -60,8 +41,12 @@ Cell* Sheet::GetCellPtr(Position pos) {
 }
 
 const Cell* Sheet::GetCellPtr(Position pos) const {
-    const Cell* const_result = GetCellPtr(pos);
-    return const_result;
+    IsPositionValid(pos);
+
+    if (pos.row < int(std::size(cells_)) && pos.col < int(std::size(cells_[pos.row]))) {
+        return cells_[pos.row][pos.col].get();
+    }
+    return nullptr;
 }
 
 void Sheet::ClearCell(Position pos) {
@@ -95,9 +80,11 @@ Size Sheet::GetPrintableSize() const {
     return size;
 }
 
-void Sheet::PrintValues(std::ostream& output) const {    
-    for (int row = 0; row < GetPrintableSize().rows; ++row) {        
-        for (int col = 0; col < GetPrintableSize().cols; ++col) {            
+void Sheet::PrintValues(std::ostream& output) const {
+    const Size printable_size = GetPrintableSize();
+
+    for (int row = 0; row < printable_size.rows; ++row) {
+        for (int col = 0; col < printable_size.cols; ++col) {
             if (col > 0) {output << '\t';}            
             if (col < int(std::size(cells_[row]))) {                
                 if (cells_[row][col]) {std::visit([&output](const auto& value) { output << value; },
@@ -109,9 +96,11 @@ void Sheet::PrintValues(std::ostream& output) const {
     }
 }
 
-void Sheet::PrintTexts(std::ostream& output) const {   
-    for (int row = 0; row < GetPrintableSize().rows; ++row) {        
-        for (int col = 0; col < GetPrintableSize().cols; ++col) {            
+void Sheet::PrintTexts(std::ostream& output) const {
+    const Size printable_size = GetPrintableSize();
+
+    for (int row = 0; row < printable_size.rows; ++row) {
+        for (int col = 0; col < printable_size.cols; ++col) {
             if (col) {output << '\t';}            
             if (col < int(std::size(cells_[row]))) {                
                 if (cells_[row][col]) {

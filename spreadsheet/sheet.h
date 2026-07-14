@@ -10,7 +10,7 @@ using Table = std::vector<std::vector<std::unique_ptr<Cell>>>;
 
 class Sheet : public SheetInterface {
 public:
-    ~Sheet();
+    ~Sheet() override = default;
     
     void SetCell(Position pos, std::string text) override;
     

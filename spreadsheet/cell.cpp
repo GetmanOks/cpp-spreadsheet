@@ -40,8 +40,8 @@ bool Cell::IsReferenced() const {
     return !dependent_cells_.empty();
 }
  
-void Cell::InvalidateAllCache(bool flag = false) {
-    if (impl_->HasCache() || flag) {
+void Cell::InvalidateAllCache(bool force) {
+    if (impl_->HasCache() || force) {
         impl_->InvalidateCache();        
         for (Cell* dependent : dependent_cells_) {
             dependent->InvalidateAllCache();
@@ -105,11 +105,11 @@ void Cell::UpdateDependencies() {
     referenced_cells_.clear();
     
     for (const auto& position : impl_->GetReferencedCells()) {
-        Cell* refrenced = sheet_.GetCellPtr(position);        
+        Cell* refrenced = sheet_.GetCellPtr(position);
         if (!refrenced) {
             sheet_.SetCell(position, "");
             refrenced = sheet_.GetCellPtr(position);
-        }        
+        }
         referenced_cells_.insert(refrenced);
         refrenced->dependent_cells_.insert(this);
     }
@@ -121,7 +121,7 @@ std::vector<Position> Cell::Impl::GetReferencedCells() const {
     return {};
 }
 
-bool Cell::Impl::HasCache() {
+bool Cell::Impl::HasCache() const {
     return true;
 }
 
@@ -175,7 +175,7 @@ std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const {
     return formula_ptr_->GetReferencedCells();
 }
 
-bool Cell::FormulaImpl::HasCache() {
+bool Cell::FormulaImpl::HasCache() const {
     return cache_.has_value();
 }
 
